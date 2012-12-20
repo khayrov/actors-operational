@@ -1,0 +1,17 @@
+name:                actors-operational
+version:             0.1.0.0
+synopsis:            Discrete simulation with actors using Program monad
+-- description:         
+license:             MIT
+author:              Rooslan S. Khayrov <khayrov@gmail.com>
+-- copyright:           
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable simulator
+  extensions:          GADTs, DisambiguateRecordFields, NamedFieldPuns, RecordWildCards, OverloadedStrings
+  ghc-options:         -threaded -fwarn-incomplete-patterns
+  main-is:             Main.hs
+  hs-source-dirs:      src
+  build-depends:       base ==4.6.*, containers ==0.5.*, mtl ==2.1.*, monad-loops ==0.3.*,
+                       operational ==0.2.*, vect ==0.4.*, random ==1.0.*, gloss ==1.7.*
