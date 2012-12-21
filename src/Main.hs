@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Loops
+import Control.Monad.State
 import qualified Data.Map.Strict as Map
 import Data.Vect.Float
 import Graphics.Gloss
@@ -24,25 +25,29 @@ sleep delay = repeatFor delay idle
 
 randomRunner :: Behavior ()
 randomRunner = do
-    v <- Vec2 <$> getRandomR (-20, 20) <*> getRandomR (-20, 20)
-    t <- getRandomR (1, 5)
-    repeatFor t $ move v
+    modify $ \m -> m { counter = counter m + 1 }
+    c <- gets counter
+    replicateM_ c $ do
+        v <- Vec2 <$> getRandomR (-30, 30) <*> getRandomR (-30, 30)
+        t <- getRandomR (1, 5)
+        repeatFor t $ move v
     t <- getRandomR (0, 5)
     sleep t
 
 
 renderWorld :: World -> Picture
 renderWorld world =
-    pictures $ map renderPlayer $ worldPlayers world
+    color black $ pictures $ frame : (map renderPlayer $ worldPlayers world)
     where
     renderPlayer (Player { position = (Vec2 x y) }) =
         translate x y $ color black $ circleSolid 3
+    frame = lineLoop [(0, 0), (0, 200), (200, 200), (200, 0)]
 
 
 main :: IO ()
 main = do
-    let p1 = Player (PlayerID 1) (Vec2 50 50) zero randomRunner
-    let p2 = Player (PlayerID 2) (Vec2 100 100) zero randomRunner
+    let p1 = Player (PlayerID 1) (Vec2 50 50) zero (Memory 0) randomRunner
+    let p2 = Player (PlayerID 2) (Vec2 100 100) zero (Memory 0) randomRunner
     world <- mkWorld [p1, p2]
     simulate
         (InWindow "operational" (300, 300) (100, 100))

@@ -60,11 +60,13 @@ runPlayer timestep pid = do
     World { .. } <- get
     case Map.lookup pid players of
             Just (PlayerState player behav) -> do
-                state' <- eval player $ view behav
+                let (prog, mem') = runState (viewT behav) (memory player)
+                let player' = player { memory = mem' }
+                state' <- eval player' prog
                 modify $ \w -> w { players = Map.insert pid state' players }
             Nothing -> return ()
     where
-    eval :: Player -> ProgramView PlayerAction () -> State World PlayerState
+    eval :: Player -> BehaviorView () -> State World PlayerState
     eval player (GetEnv :>>= cont) = do
         world@(World { .. }) <- get
         let others = [p | p <- worldPlayers world, playerId p /= pid]

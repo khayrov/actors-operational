@@ -1,14 +1,15 @@
 module Player (
     PlayerID(..),
-    Player(..),
+    Player(..), Memory(..),
     Environment(..),
     PlayerAction(..), getenv, move, getRandomR, idle, askenv,
-    Behavior
+    Behavior, BehaviorView
 ) where
 
 
 import Control.Monad (void)
 import Control.Monad.Operational
+import Control.Monad.State
 import Data.List (intercalate)
 import Data.Vect.Float (Vec2, zero)
 import System.Random (Random)
@@ -21,6 +22,7 @@ data Player = Player {
     playerId :: PlayerID,
     position :: Vec2,
     velocity :: Vec2,
+    memory :: Memory,
     behavior :: Behavior ()
 }
 
@@ -54,7 +56,14 @@ data PlayerAction a where
     GetRandomR :: Random a => (a, a) -> PlayerAction a
 
 
-type Behavior = Program PlayerAction
+data Memory = Memory {
+    counter :: Int
+} deriving (Show)
+
+
+type Behavior = ProgramT PlayerAction (State Memory)
+
+type BehaviorView = ProgramViewT PlayerAction (State Memory)
 
 
 getenv :: Behavior Environment
