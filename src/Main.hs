@@ -12,18 +12,26 @@ import Player
 import World hiding (time)
 
 
-repeatFor :: Float -> Behavior a -> Behavior ()
+data Memory = Memory {
+    counter :: Int
+} deriving (Show)
+
+
+type AI = Behavior Memory
+
+
+repeatFor :: Float -> Behavior m a -> Behavior m ()
 repeatFor duration action = do
     t0 <- askenv time
     let t1 = t0 + duration
     whileM_ ((< t1) <$> askenv time) action
 
 
-sleep :: Float -> Behavior ()
+sleep :: Float -> Behavior m ()
 sleep delay = repeatFor delay idle 
 
 
-randomRunner :: Behavior ()
+randomRunner :: AI ()
 randomRunner = do
     modify $ \m -> m { counter = counter m + 1 }
     c <- gets counter
@@ -46,8 +54,10 @@ renderWorld world =
 
 main :: IO ()
 main = do
-    let p1 = Player (PlayerID 1) (Vec2 50 50) zero (Memory 0) randomRunner
-    let p2 = Player (PlayerID 2) (Vec2 100 100) zero (Memory 0) randomRunner
+    let b1 = Brain (Memory 0) randomRunner randomRunner
+    let b2 = Brain (Memory 0) randomRunner randomRunner
+    let p1 = Player (PlayerID 1) (Vec2 50 50) zero b1
+    let p2 = Player (PlayerID 2) (Vec2 100 100) zero b2
     world <- mkWorld [p1, p2]
     simulate
         (InWindow "operational" (300, 300) (100, 100))

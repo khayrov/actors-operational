@@ -17,17 +17,10 @@ import Debug.Trace
 import Player hiding (time)
 
 
-data PlayerState = PlayerState Player (Behavior ())
-
-
-instance Show PlayerState where
-    show (PlayerState p _) = "PlayerState (" ++ show p ++ ")"
-
-
 data World = World {
     time :: Float,
     bounds :: (Vec2, Vec2),
-    players :: Map PlayerID PlayerState,
+    players :: Map PlayerID Player,
     rng :: StdGen
 } deriving (Show)
 
@@ -35,12 +28,12 @@ data World = World {
 mkWorld :: [Player] -> IO World
 mkWorld players = do
     rng <- newStdGen
-    let pmap = Map.fromList [(playerId p, PlayerState p (behavior p)) | p <- players]
+    let pmap = Map.fromList [(playerId p, p) | p <- players]
     return $ World 0 (Vec2 0 0, Vec2 200 200) pmap rng
 
 
 worldPlayers :: World -> [Player]
-worldPlayers world = [p | PlayerState p _ <- Map.elems (players world)]
+worldPlayers = Map.elems . players
 
 
 fitBounds :: (Vec2, Vec2) -> Vec2 -> Vec2
@@ -59,28 +52,29 @@ runPlayer :: Float -> PlayerID -> State World ()
 runPlayer timestep pid = do
     World { .. } <- get
     case Map.lookup pid players of
-            Just (PlayerState player behav) -> do
-                let (prog, mem') = runState (viewT behav) (memory player)
-                let player' = player { memory = mem' }
-                state' <- eval player' prog
-                modify $ \w -> w { players = Map.insert pid state' players }
+            Just player@(Player { .. }) -> do
+                player' <- eval player (runBrain brain)
+                modify $ \w -> w { players = Map.insert pid player' players }
             Nothing -> return ()
     where
-    eval :: Player -> BehaviorView () -> State World PlayerState
-    eval player (GetEnv :>>= cont) = do
+    eval :: Player -> BrainCont -> State World Player
+    eval player (BrainCont m def (GetEnv :>>= cont)) = do
         world@(World { .. }) <- get
         let others = [p | p <- worldPlayers world, playerId p /= pid]
         let env = Environment time player others
-        return $ PlayerState player (cont env)
-    eval player (GetRandomR range :>>= cont) = do
+        let brain = Brain m def (cont env)
+        return $ player { brain = brain }
+    eval player (BrainCont m def (GetRandomR range :>>= cont)) = do
         g <- gets rng
         let (x, g') = randomR range g
         modify $ \w -> w { rng = g' }
-        return $ PlayerState player (cont x)
-    eval player (Move v :>>= cont) = do
+        let brain = Brain m def (cont x)
+        return $ player { brain = brain }
+    eval player (BrainCont m def (Move v :>>= cont)) = do
         wbounds <- gets bounds
         let pos' = fitBounds wbounds $ position player &+ v &* timestep
         let p' = player { position = pos', velocity = v }
-        return $ PlayerState p' (cont pos')
-    eval player (Return _) =
-        return $ PlayerState player (behavior player)
+        let brain = Brain m def (cont pos')
+        return $ p' { brain = brain }
+    eval player (BrainCont m def (Return _)) =
+        return $ player { brain = Brain m def def }

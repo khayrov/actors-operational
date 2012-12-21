@@ -1,6 +1,6 @@
 module Player (
     PlayerID(..),
-    Player(..), Memory(..),
+    Player(..), Brain(..), BrainCont(..), runBrain,
     Environment(..),
     PlayerAction(..), getenv, move, getRandomR, idle, askenv,
     Behavior, BehaviorView
@@ -22,8 +22,7 @@ data Player = Player {
     playerId :: PlayerID,
     position :: Vec2,
     velocity :: Vec2,
-    memory :: Memory,
-    behavior :: Behavior ()
+    brain :: Brain
 }
 
 
@@ -56,27 +55,43 @@ data PlayerAction a where
     GetRandomR :: Random a => (a, a) -> PlayerAction a
 
 
-data Memory = Memory {
-    counter :: Int
-} deriving (Show)
+data Brain where
+    Brain :: {
+            memory :: memory,
+            defaultBehavior :: Behavior memory (),
+            currentBehavior :: Behavior memory ()
+        } -> Brain
 
 
-type Behavior = ProgramT PlayerAction (State Memory)
+data BrainCont where
+    BrainCont :: {
+            contMemory :: memory,
+            contDefaultBehavior :: Behavior memory (),
+            currentView :: BehaviorView memory ()
+        } -> BrainCont
 
-type BehaviorView = ProgramViewT PlayerAction (State Memory)
+
+runBrain :: Brain -> BrainCont
+runBrain (Brain mem def behav) = BrainCont mem' def cont where
+    (cont, mem') = runState (viewT behav) mem
 
 
-getenv :: Behavior Environment
+type Behavior memory = ProgramT PlayerAction (State memory)
+
+type BehaviorView memory = ProgramViewT PlayerAction (State memory)
+
+
+getenv :: Behavior memory Environment
 getenv = singleton GetEnv
 
-move :: Vec2 -> Behavior Vec2
+move :: Vec2 -> Behavior memory Vec2
 move = singleton . Move
 
-getRandomR :: Random a => (a, a) -> Behavior a
+getRandomR :: Random a => (a, a) -> Behavior memory a
 getRandomR = singleton . GetRandomR
 
-idle :: Behavior ()
+idle :: Behavior memory ()
 idle = void $ move zero
 
-askenv :: (Environment -> a) -> Behavior a
+askenv :: (Environment -> a) -> Behavior memory a
 askenv f = fmap f getenv
