@@ -12,7 +12,6 @@ import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Data.Vect.Float
 import System.Random
-import Debug.Trace
 
 import Player hiding (time)
 
@@ -62,19 +61,18 @@ runPlayer timestep pid = do
         world@(World { .. }) <- get
         let others = [p | p <- worldPlayers world, playerId p /= pid]
         let env = Environment time player others
-        let brain = Brain m def (cont env)
-        return $ player { brain = brain }
+        return $ player { brain = Brain m def (cont env) }
     eval player (BrainCont m def (GetRandomR range :>>= cont)) = do
         g <- gets rng
         let (x, g') = randomR range g
         modify $ \w -> w { rng = g' }
-        let brain = Brain m def (cont x)
-        return $ player { brain = brain }
+        return $ player { brain = Brain m def (cont x) }
     eval player (BrainCont m def (Move v :>>= cont)) = do
         wbounds <- gets bounds
+        let pos = position player
         let pos' = fitBounds wbounds $ position player &+ v &* timestep
-        let p' = player { position = pos', velocity = v }
-        let brain = Brain m def (cont pos')
-        return $ p' { brain = brain }
+        let vel' = (pos' &- pos) &* (1 / timestep)
+        let player' = player { position = pos', velocity = vel' }
+        return $ player' { brain = Brain m def (cont pos') }
     eval player (BrainCont m def (Return _)) =
         return $ player { brain = Brain m def def }
