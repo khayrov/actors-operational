@@ -61,18 +61,21 @@ runPlayer timestep pid = do
         world@(World { .. }) <- get
         let others = [p | p <- worldPlayers world, playerId p /= pid]
         let env = Environment time player others
-        return $ player { brain = Brain m def (cont env) }
+        let brain' = Brain m def (cont env)
+        eval player (runBrain brain')
     eval player (BrainCont m def (GetRandomR range :>>= cont)) = do
         g <- gets rng
         let (x, g') = randomR range g
         modify $ \w -> w { rng = g' }
-        return $ player { brain = Brain m def (cont x) }
+        let brain' = Brain m def (cont x)
+        eval player (runBrain brain')
     eval player (BrainCont m def (Move v :>>= cont)) = do
         wbounds <- gets bounds
         let pos = position player
         let pos' = fitBounds wbounds $ position player &+ v &* timestep
         let vel' = (pos' &- pos) &* (1 / timestep)
         let player' = player { position = pos', velocity = vel' }
-        return $ player' { brain = Brain m def (cont pos') }
+        let brain' = Brain m def (cont pos')
+        return $ player' { brain = brain' }
     eval player (BrainCont m def (Return _)) =
         return $ player { brain = Brain m def def }
