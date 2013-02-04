@@ -17,10 +17,10 @@ import Player hiding (time)
 
 
 data World = World {
-    time :: Float,
-    bounds :: (Vec2, Vec2),
+    time :: !Float,
+    bounds :: !(Vec2, Vec2),
     players :: Map PlayerID Player,
-    rng :: StdGen
+    rng :: !StdGen
 } deriving (Show)
 
 

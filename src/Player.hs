@@ -19,9 +19,9 @@ newtype PlayerID = PlayerID Int deriving (Show, Eq, Ord)
 
 
 data Player = Player {
-    playerId :: PlayerID,
-    position :: Vec2,
-    velocity :: Vec2,
+    playerId :: !PlayerID,
+    position :: !Vec2,
+    velocity :: !Vec2,
     brain :: Brain
 }
 
@@ -43,7 +43,7 @@ instance Ord Player where
 
 
 data Environment = Environment {
-    time :: Float,
+    time :: !Float,
     self :: Player,
     others :: [Player]
 } deriving (Show)
@@ -58,16 +58,16 @@ data PlayerAction a where
 data Brain where
     Brain :: {
             memory :: memory,
-            defaultBehavior :: Behavior memory (),
-            currentBehavior :: Behavior memory ()
+            defaultBehavior :: (Behavior memory ()),
+            currentBehavior :: (Behavior memory ())
         } -> Brain
 
 
 data BrainCont where
     BrainCont :: {
-            contMemory :: memory,
-            contDefaultBehavior :: Behavior memory (),
-            currentView :: BehaviorView memory ()
+            contMemory :: !memory,
+            contDefaultBehavior :: (Behavior memory ()),
+            currentView :: !(BehaviorView memory ())
         } -> BrainCont
 
 

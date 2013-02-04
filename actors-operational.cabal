@@ -10,7 +10,7 @@ cabal-version:       >=1.8
 
 executable simulator
   extensions:          GADTs, DisambiguateRecordFields, NamedFieldPuns, RecordWildCards, OverloadedStrings
-  ghc-options:         -threaded -fwarn-incomplete-patterns
+  ghc-options:         -rtsopts -threaded -fwarn-incomplete-patterns
   main-is:             Main.hs
   hs-source-dirs:      src
   build-depends:       base ==4.6.*, containers ==0.5.*, mtl ==2.1.*, monad-loops ==0.3.*,
